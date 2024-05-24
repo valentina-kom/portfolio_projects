@@ -2,6 +2,7 @@
 This is Week 1 of Data with Danny [SQL Chalenge problems](https://8weeksqlchallenge.com/case-study-1/)
 
 We help Danny's Diner learn more about their customers, their favorite dishes and performance of their loyalty program.
+
 Some results have duplicates (several values assigned to the same customer). We are not concerned with these, as if people come as a group and one customer picks up the bill, all orders are recorded under one customer. If in the future Danny wants more granular information, database schema could be updated with "number of guests in the party" measure.
 
 **Query #1 What is the total amount each customer spent at the restaurant?**
