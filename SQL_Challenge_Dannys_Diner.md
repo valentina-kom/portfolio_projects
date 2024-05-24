@@ -1,7 +1,8 @@
 ## Danny's Diner
 This is Week 1 of Data with Danny [SQL Chalenge problems](https://8weeksqlchallenge.com/case-study-1/)
 
-We help Danny's Diner learn more about their customers, their favorite dishes and perfomance of their loyalty program.
+We help Danny's Diner learn more about their customers, their favorite dishes and performance of their loyalty program.
+Some results have duplicates (several values assigned to the same customer). We are not concerned with these, as if people come as a group and one customer picks up the bill, all orders are recorded under one customer. If in the future Danny wants more granular information, database schema could be updated with "number of guests in the party" measure.
 
 **Query #1 What is the total amount each customer spent at the restaurant?**
 
@@ -60,40 +61,41 @@ We help Danny's Diner learn more about their customers, their favorite dishes an
 ---
 **Query #4 What is the most purchased item on the menu and how many times was it purchased by all customers?**
 
-    SELECT m.product_name, COUNT(s.product_id) as most_purchased
+    SELECT m.product_name, COUNT(s.product_id) as times_purchased
     FROM dannys_diner.sales as s
     LEFT JOIN dannys_diner.menu as m
     ON s.product_id = m.product_id
     GROUP BY product_name
-    ORDER BY most_purchased DESC
+    ORDER BY times_purchased DESC
     LIMIT 1;
 
-| product_name | most_purchased |
-| ------------ | -------------- |
-| ramen        | 8              |
+| product_name | times_purchased |
+| ------------ | --------------- |
+| ramen        | 8               |
 
 ---
 **Query #5 Which item was the most popular for each customer?**
 
     WITH ranked_items AS (SELECT 
-                          s.customer_id, 
-                          product_name, 
-                          RANK() OVER(PARTITION BY s.customer_id ORDER BY COUNT(s.product_id) DESC) AS rnk 
-                          FROM dannys_diner.sales AS s 
-                          INNER JOIN dannys_diner.menu AS m ON s.product_id = m.product_id 
-                          GROUP BY s.customer_id, m.product_name )
-    
-    SELECT customer_id, product_name
-    FROM ranked_items
-    WHERE rnk = 1;
+                              s.customer_id, 
+                              product_name, 
+                              COUNT(s.product_id) as times_purchased,
+                              RANK() OVER(PARTITION BY s.customer_id ORDER BY COUNT(s.product_id) DESC) AS rnk 
+                              FROM dannys_diner.sales AS s 
+                              LEFT JOIN dannys_diner.menu AS m ON s.product_id = m.product_id 
+                              GROUP BY s.customer_id, m.product_name )
+        
+        SELECT customer_id, product_name, times_purchased
+        FROM ranked_items
+        WHERE rnk = 1;
 
-| customer_id | product_name |
-| ----------- | ------------ |
-| A           | ramen        |
-| B           | ramen        |
-| B           | curry        |
-| B           | sushi        |
-| C           | ramen        |
+| customer_id | product_name | times_purchased |
+| ----------- | ------------ | --------------- |
+| A           | ramen        | 3               |
+| B           | ramen        | 2               |
+| B           | curry        | 2               |
+| B           | sushi        | 2               |
+| C           | ramen        | 3               |
 
 ---
 **Query #6 Which item was purchased first by the customer after they became a member?**
@@ -101,10 +103,10 @@ We help Danny's Diner learn more about their customers, their favorite dishes an
     WITH first_purchased AS (SELECT 
                           s.customer_id, 
                           product_name, 
-                          ROW_NUMBER() OVER(PARTITION BY s.customer_id ORDER BY order_date ) AS first_purchase 
+                          RANK() OVER(PARTITION BY s.customer_id ORDER BY order_date ) AS first_purchase 
                           FROM dannys_diner.sales AS s 
-                          INNER JOIN dannys_diner.menu AS m ON s.product_id = m.product_id 
-                          INNER JOIN dannys_diner.members as mm
+                          LEFT JOIN dannys_diner.menu AS m ON s.product_id = m.product_id 
+                          INNER JOIN dannys_diner.members as mm -- as we are only interested in members
                           ON mm.customer_id = s.customer_id
                           WHERE order_date >= join_date)
     
@@ -121,30 +123,32 @@ We help Danny's Diner learn more about their customers, their favorite dishes an
 **Query #7  Which item was purchased just before the customer became a member?**
 
     WITH last_purchase AS (SELECT 
-                          s.customer_id, 
-                          product_name, 
-                          ROW_NUMBER() OVER(PARTITION BY s.customer_id ORDER BY order_date DESC) AS last_purchase 
-                          FROM dannys_diner.sales AS s 
-                          INNER JOIN dannys_diner.menu AS m ON s.product_id = m.product_id 
-                          INNER JOIN dannys_diner.members as mm
-                          ON mm.customer_id = s.customer_id
-                          WHERE order_date < join_date)
-    
-    SELECT customer_id, product_name AS last_purchase
-    FROM last_purchase
-    WHERE last_purchase = 1;
+                              s.customer_id, 
+                              product_name, 
+                              RANK() OVER(PARTITION BY s.customer_id ORDER BY order_date DESC) AS last_purchase 
+                              FROM dannys_diner.sales AS s 
+                              LEFT JOIN dannys_diner.menu AS m ON s.product_id = m.product_id 
+                              INNER JOIN dannys_diner.members as mm 
+                              ON mm.customer_id = s.customer_id
+                              WHERE order_date < join_date)
+        
+        SELECT customer_id, product_name AS last_purchase
+        FROM last_purchase
+        WHERE last_purchase = 1;
 
 | customer_id | last_purchase |
 | ----------- | ------------- |
 | A           | sushi         |
+| A           | curry         |
 | B           | sushi         |
+
 
 ---
 **Query #8 What is the total items and amount spent for each member before they became a member?**
 
     SELECT s.customer_id, SUM(price) as total_spend, COUNT(s.product_id) as total_products
     FROM dannys_diner.sales as s
-    INNER JOIN dannys_diner.menu AS m
+    LEFT JOIN dannys_diner.menu AS m
     ON s.product_id = m.product_id
     INNER JOIN dannys_diner.members as mm
     ON s.customer_id = mm.customer_id
@@ -166,7 +170,7 @@ We help Danny's Diner learn more about their customers, their favorite dishes an
     FROM dannys_diner.sales as s
     LEFT JOIN dannys_diner.menu as m
     ON s.product_id = m.product_id
-    LEFT JOIN dannys_diner.members as mm
+    INNER JOIN dannys_diner.members as mm
     ON s.customer_id = mm.customer_id
     WHERE s.order_date >= mm.join_date
     GROUP BY s.customer_id;
@@ -183,7 +187,7 @@ We help Danny's Diner learn more about their customers, their favorite dishes an
     FROM dannys_diner.sales as s
     LEFT JOIN dannys_diner.menu as m
     ON s.product_id = m.product_id
-    LEFT JOIN dannys_diner.members as mm
+    INNER JOIN dannys_diner.members as mm
     ON s.customer_id = mm.customer_id
     WHERE s.order_date BETWEEN mm.join_date AND (mm.join_date + INTERVAL '6 days')
     GROUP BY s.customer_id
