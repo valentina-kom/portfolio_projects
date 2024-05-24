@@ -1,3 +1,6 @@
+## Danny's Diner
+This is Week 1 of Data with Danny SQL Chalenge problems.
+We help Danny's Diner learn more about their customers, their favorite dishes and perfomance of their loyalty program.
 
 **Query #1 What is the total amount each customer spent at the restaurant?**
 
