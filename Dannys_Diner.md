@@ -1,5 +1,6 @@
 
-**Query #1 1. What is the total amount each customer spent at the restaurant? **
+**Query #1 What is the total amount each customer spent at the restaurant?**
+
     SELECT
     	s.customer_id,
         SUM(m.price) as total_spend
@@ -16,7 +17,7 @@
 | C           | 36          |
 
 ---
-**Query #2**
+**Query #2 How many days has each customer visited the restaurant?**
 
     SELECT customer_id, 
     	COUNT(DISTINCT order_date) as number_of_visits
@@ -31,7 +32,7 @@
 | C           | 2                |
 
 ---
-**Query #3**
+**Query #3 What was the first item from the menu purchased by each customer?**
 
     WITH first_item AS (
       SELECT s.customer_id,
@@ -53,7 +54,7 @@
 | C           | ramen        |
 
 ---
-**Query #4**
+**Query #4 What is the most purchased item on the menu and how many times was it purchased by all customers?**
 
     SELECT m.product_name, COUNT(s.product_id) as most_purchased
     FROM dannys_diner.sales as s
@@ -68,7 +69,7 @@
 | ramen        | 8              |
 
 ---
-**Query #5**
+**Query #5 Which item was the most popular for each customer?**
 
     WITH ranked_items AS (SELECT 
                           s.customer_id, 
@@ -91,7 +92,7 @@
 | C           | ramen        |
 
 ---
-**Query #6**
+**Query #6 Which item was purchased first by the customer after they became a member?**
 
     WITH first_purchased AS (SELECT 
                           s.customer_id, 
@@ -113,7 +114,7 @@
 | B           | sushi          |
 
 ---
-**Query #7**
+**Query #7  Which item was purchased just before the customer became a member?**
 
     WITH last_purchase AS (SELECT 
                           s.customer_id, 
@@ -135,7 +136,7 @@
 | B           | sushi         |
 
 ---
-**Query #8**
+**Query #8 What is the total items and amount spent for each member before they became a member?**
 
     SELECT s.customer_id, SUM(price) as total_spend, COUNT(s.product_id) as total_products
     FROM dannys_diner.sales as s
@@ -152,7 +153,7 @@
 | A           | 25          | 2              |
 
 ---
-**Query #9**
+**Query #9 If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?**
 
     SELECT s.customer_id, SUM(CASE
     	WHEN m.product_name = 'sushi' THEN m.price*20
@@ -172,7 +173,7 @@
 | A           | 510          |
 
 ---
-**Query #10**
+**Query #10 In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?**
 
     SELECT s.customer_id, SUM(m.price*20) as total_points
     FROM dannys_diner.sales as s
@@ -181,7 +182,8 @@
     LEFT JOIN dannys_diner.members as mm
     ON s.customer_id = mm.customer_id
     WHERE s.order_date BETWEEN mm.join_date AND (mm.join_date + INTERVAL '6 days')
-    GROUP BY s.customer_id;
+    GROUP BY s.customer_id
+    HAVING s.customer_id = 'A' OR s.customer_id = 'B';
 
 | customer_id | total_points |
 | ----------- | ------------ |
