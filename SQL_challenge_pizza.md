@@ -26,6 +26,7 @@ This is Week 2 of Data with Danny [SQL Chalenge problems](https://8weeksqlchalle
 
 ---
 **#3 -- How many successful orders were delivered by each runner?**
+
 *Cancellation column contains a lot of missing values. It is not clear from the assignment, but I am assumning that the order is "sucsessful" 
 if pick up time and distance are not nulls, even if the Cancellation is Null/NaN*
 
@@ -95,7 +96,54 @@ if pick up time and distance are not nulls, even if the Cancellation is Null/NaN
 | 4        | 3          |
 
 ---
-**#7 -- What was the total volume of pizzas ordered for each hour of the day?**
+
+**Query #7 -- For each order, how many delivered pizzas had at least 1 change and how many had no changes?**
+
+*Next two questions deal with empty cells, null and NaN values. I had to implement additional checks for empty strings, "null" as string to make the query work correctly. I was using PostgreSQL v15 to run my queries*
+
+    SELECT order_id, 
+           SUM(CASE
+                   WHEN (exclusions IS NOT NULL AND exclusions != 'null' AND exclusions != '') 
+                     OR (extras IS NOT NULL AND extras != 'null' AND extras != '') 
+                   THEN 1
+                   ELSE 0 
+               END) as pizzas_with_changes,
+           SUM(CASE
+                   WHEN (exclusions IS NULL OR exclusions = 'null' OR exclusions = '') 
+                     AND (extras IS NULL OR extras = 'null' OR extras = '') 
+                   THEN 1
+                   ELSE 0 
+               END) as pizzas_without_changes
+    FROM pizza_runner.customer_orders
+    GROUP BY order_id
+    ORDER BY order_id;
+
+| order_id | pizzas_with_changes | pizzas_without_changes |
+| -------- | ------------------- | ---------------------- |
+| 1        | 0                   | 1                      |
+| 2        | 0                   | 1                      |
+| 3        | 0                   | 2                      |
+| 4        | 3                   | 0                      |
+| 5        | 1                   | 0                      |
+| 6        | 0                   | 1                      |
+| 7        | 1                   | 0                      |
+| 8        | 0                   | 1                      |
+| 9        | 1                   | 0                      |
+| 10       | 1                   | 1                      |
+
+---
+**Query #8 - -- How many pizzas were delivered that had both exclusions and extras?**
+
+    SELECT COUNT(*) as pizzas_with_changes
+    FROM pizza_runner.customer_orders
+    WHERE exclusions IS NOT NULL AND exclusions != 'null' AND exclusions != ''
+      AND extras IS NOT NULL AND extras != 'null' AND extras != '';
+
+| pizzas_with_changes |
+| ------------------- |
+| 2                   |
+
+**#9 -- What was the total volume of pizzas ordered for each hour of the day?**
 
     SELECT EXTRACT(HOUR FROM order_time) as order_hour, COUNT(pizza_id) number_of_pizzas_ordered
     FROM pizza_runner.customer_orders
@@ -112,7 +160,7 @@ if pick up time and distance are not nulls, even if the Cancellation is Null/NaN
 | 19         | 1                        |
 
 ---
-**#8 -- What was the volume of orders for each day of the week?**
+**#10 -- What was the volume of orders for each day of the week?**
 
     SELECT EXTRACT(DOW FROM order_time) as order_day_of_the_week, COUNT(pizza_id) number_of_pizzas_ordered
     FROM pizza_runner.customer_orders
@@ -128,7 +176,7 @@ if pick up time and distance are not nulls, even if the Cancellation is Null/NaN
 
 ---
 ***Part B. Runner and Customer Experience***
-**#9 -- How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)**
+**#1 -- How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)**
 
     SELECT EXTRACT(WEEK from registration_date) as week_regisrered, COUNT(DISTINCT runner_id)
     FROM pizza_runner.runners 
@@ -142,7 +190,7 @@ if pick up time and distance are not nulls, even if the Cancellation is Null/NaN
 | 53              | 2     |
 
 ---
-**#10 -- What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+**#2 -- What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
 -- We will assume the time that it took the runner to arrive is the difference between order date and pickup time**
 
     SELECT runner_id as runner, 
@@ -161,7 +209,7 @@ if pick up time and distance are not nulls, even if the Cancellation is Null/NaN
 | 3      | 10.466666666666667 |
 
 ---
-**#11 -- What was the average distance travelled for each customer?**
+**#3 -- What was the average distance travelled for each customer?**
 
     SELECT co.customer_id as customer, AVG((REGEXP_REPLACE(distance, '[[:alpha:]]', '', 'g'))::numeric) AS avg_distance
     FROM pizza_runner.customer_orders as co
