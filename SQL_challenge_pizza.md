@@ -228,5 +228,80 @@ if pick up time and distance are not nulls, even if the Cancellation is Null/NaN
 | 104      | 10.0000000000000000 |
 
 ---
+***D. Pricing and Ratings***
+
+**Query #1 If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?**
+
+    SELECT SUM(
+               CASE
+                  WHEN pizza_name = 'Meatlovers' THEN 12
+                  WHEN pizza_name = 'Vegetarian' THEN 10
+                  ELSE 0
+               END) as total_revenue
+    FROM pizza_runner.customer_orders as co
+    LEFT JOIN pizza_runner.pizza_names as pn
+    ON co.pizza_id = pn.pizza_id
+    LEFT JOIN pizza_runner.runner_orders AS ro 
+    ON ro.order_id = co.order_id
+    WHERE (ro.cancellation IS NULL OR ro.cancellation NOT IN ('Restaurant Cancellation', 'Customer Cancellation'));
+
+| total_revenue |
+| ------------- |
+| 138           |
+
+---
+**Query #2 What if there was an additional $1 charge for any pizza extras?**
+
+    SELECT SUM(
+               CASE
+                  WHEN pizza_name = 'Meatlovers' THEN 12
+                  WHEN pizza_name = 'Vegetarian' THEN 10
+                  ELSE 0
+               END 
+               + 
+               CASE 
+                  WHEN extras IS NOT NULL AND extras != 'null' AND extras != '' 
+                  THEN array_length(string_to_array(extras, ','), 1) 
+                  ELSE 0 
+               END
+           ) as total_revenue_with_extras
+    FROM pizza_runner.customer_orders as co
+    LEFT JOIN pizza_runner.pizza_names as pn
+    ON co.pizza_id = pn.pizza_id
+    LEFT JOIN pizza_runner.runner_orders AS ro 
+    ON ro.order_id = co.order_id
+    WHERE (ro.cancellation IS NULL OR ro.cancellation NOT IN ('Restaurant Cancellation', 'Customer Cancellation'));
+
+| total_revenue_with_extras |
+| ------------------------- |
+| 142                       |
+
+
+---
+**Query #3 f a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?**
+
+    SELECT (SUM(
+               CASE
+                  WHEN pizza_name = 'Meatlovers' THEN 12
+                  WHEN pizza_name = 'Vegetarian' THEN 10
+                  ELSE 0
+               END)- (SUM(
+                CASE
+                    WHEN distance IS NOT NULL AND distance <> '' THEN (REGEXP_REPLACE(distance, '[[:alpha:]]', '', 'g'))::numeric
+                    ELSE 0
+                END
+            ) * 0.3)) as total_revenue_minus_delivery
+    FROM pizza_runner.customer_orders as co
+    LEFT JOIN pizza_runner.pizza_names as pn
+    ON co.pizza_id = pn.pizza_id
+    LEFT JOIN pizza_runner.runner_orders AS ro 
+    ON ro.order_id = co.order_id
+    WHERE (ro.cancellation IS NULL OR ro.cancellation NOT IN ('Restaurant Cancellation', 'Customer Cancellation'));
+
+| total_revenue_minus_delivery |
+| ---------------------------- |
+| 73.38                        |
+
+---
 
 [View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
